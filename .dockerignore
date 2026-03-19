@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+dist
+.env
+.git
+.gitignore
+.prettierrc
+eslint.config.mjs
+README.md
+ezy-buy-brd.md
+test/
