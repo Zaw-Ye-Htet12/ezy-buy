@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   customer
   admin
+  rider
 }
 
 enum FulfillmentType {
@@ -43,20 +44,20 @@ enum PaymentStatus {
 }
 
 model User {
-  id               String    @id @default(uuid()) @db.Uuid
-  email            String    @unique @db.VarChar(255)
-  phone            String?   @unique @db.VarChar(20)
-  passwordHash     String    @map("password_hash") @db.Text
-  fullName         String    @map("full_name") @db.VarChar(100)
-  role             Role
-  isActive             Boolean   @default(true) @map("is_active")
-  isEmailVerified      Boolean   @default(false) @map("is_email_verified")
+  id                     String    @id @default(uuid()) @db.Uuid
+  email                  String    @unique @db.VarChar(255)
+  phone                  String?   @unique @db.VarChar(20)
+  passwordHash           String    @map("password_hash") @db.Text
+  fullName               String    @map("full_name") @db.VarChar(100)
+  role                   Role
+  isActive               Boolean   @default(true) @map("is_active")
+  isEmailVerified        Boolean   @default(false) @map("is_email_verified")
   emailVerificationToken String?   @map("email_verification_token") @db.Text
-  createdAt            DateTime  @default(now()) @map("created_at")
-  refreshTokenHash     String?   @map("refresh_token_hash") @db.Text
-  resetPasswordToken   String?   @map("reset_password_token") @db.Text
-  resetPasswordExpires DateTime? @map("reset_password_expires")
-  
+  createdAt              DateTime  @default(now()) @map("created_at")
+  refreshTokenHash       String?   @map("refresh_token_hash") @db.Text
+  resetPasswordToken     String?   @map("reset_password_token") @db.Text
+  resetPasswordExpires   DateTime? @map("reset_password_expires")
+
   addresses        Address[]
   orders           Order[]
   deliveries       Delivery[] @relation("DeliveryPerson")
@@ -66,32 +67,32 @@ model User {
 }
 
 model Address {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  label        String?   @db.VarChar(50)
-  addressLine1 String    @map("address_line1") @db.Text
-  city         String    @db.VarChar(100)
-  latitude     Decimal   @db.Decimal(10, 8)
-  longitude    Decimal   @db.Decimal(11, 8)
-  isDefault    Boolean   @default(false) @map("is_default")
-  
-  user         User      @relation(fields: [userId], references: [id])
-  deliveries   Delivery[]
+  id           String  @id @default(uuid()) @db.Uuid
+  userId       String  @map("user_id") @db.Uuid
+  label        String? @db.VarChar(50)
+  addressLine1 String  @map("address_line1") @db.Text
+  city         String  @db.VarChar(100)
+  latitude     Decimal @db.Decimal(10, 8)
+  longitude    Decimal @db.Decimal(11, 8)
+  isDefault    Boolean @default(false) @map("is_default")
+
+  user       User       @relation(fields: [userId], references: [id])
+  deliveries Delivery[]
 
   @@map("addresses")
 }
 
 model Category {
-  id          String     @id @default(uuid()) @db.Uuid
-  name        String     @db.VarChar(100)
-  slug        String     @unique @db.VarChar(100)
-  parentId    String?    @map("parent_id") @db.Uuid
-  sortOrder   Int        @default(0) @map("sort_order")
-  isActive    Boolean    @default(true) @map("is_active")
-  
-  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
-  children    Category[] @relation("SubCategories")
-  products    Product[]
+  id        String  @id @default(uuid()) @db.Uuid
+  name      String  @db.VarChar(100)
+  slug      String  @unique @db.VarChar(100)
+  parentId  String? @map("parent_id") @db.Uuid
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  products Product[]
 
   @@map("categories")
 }
@@ -103,14 +104,15 @@ model Product {
   slug        String   @unique @db.VarChar(200)
   description String?  @db.Text
   price       Decimal  @db.Decimal(10, 2)
-  imageUrl    String?  @map("image_url") @db.Text
+  imageUrls   String[] @default([]) @map("image_urls")
+  stock       Int      @default(0)
   isAvailable Boolean  @default(true) @map("is_available")
   isDeleted   Boolean  @default(false) @map("is_deleted")
   createdAt   DateTime @default(now()) @map("created_at")
-  
-  category    Category @relation(fields: [categoryId], references: [id])
-  options     ProductOption[]
-  orderItems  OrderItem[]
+
+  category   Category        @relation(fields: [categoryId], references: [id])
+  options    ProductOption[]
+  orderItems OrderItem[]
 
   @@map("products")
 }
@@ -119,9 +121,9 @@ model ProductOption {
   id        String @id @default(uuid()) @db.Uuid
   productId String @map("product_id") @db.Uuid
   name      String @db.VarChar(100)
-  
-  product   Product @relation(fields: [productId], references: [id])
-  values    ProductOptionValue[]
+
+  product Product              @relation(fields: [productId], references: [id])
+  values  ProductOptionValue[]
 
   @@map("product_options")
 }
@@ -131,47 +133,47 @@ model ProductOptionValue {
   optionId   String  @map("option_id") @db.Uuid
   label      String  @db.VarChar(100)
   priceDelta Decimal @default(0) @map("price_delta") @db.Decimal(8, 2)
-  
-  option     ProductOption @relation(fields: [optionId], references: [id])
+
+  option ProductOption @relation(fields: [optionId], references: [id])
 
   @@map("product_option_values")
 }
 
 model Order {
-  id                  String             @id @default(uuid()) @db.Uuid
-  orderNumber         String             @unique @map("order_number") @db.VarChar(20) // e.g. ORD-20240312-001
-  userId              String             @map("user_id") @db.Uuid
-  fulfillmentType     FulfillmentType    @map("fulfillment_type")
+  id                  String          @id @default(uuid()) @db.Uuid
+  orderNumber         String          @unique @map("order_number") @db.VarChar(20) // e.g. ORD-20240312-001
+  userId              String          @map("user_id") @db.Uuid
+  fulfillmentType     FulfillmentType @map("fulfillment_type")
   status              OrderStatus
-  subtotal            Decimal            @db.Decimal(10, 2)
-  deliveryFee         Decimal            @default(0) @map("delivery_fee") @db.Decimal(8, 2)
-  totalAmount         Decimal            @map("total_amount") @db.Decimal(10, 2)
-  specialInstructions String?            @map("special_instructions") @db.Text
-  estimatedReadyAt    DateTime?          @map("estimated_ready_at")
-  createdAt           DateTime           @default(now()) @map("created_at")
-  updatedAt           DateTime           @updatedAt @map("updated_at")
+  subtotal            Decimal         @db.Decimal(10, 2)
+  deliveryFee         Decimal         @default(0) @map("delivery_fee") @db.Decimal(8, 2)
+  totalAmount         Decimal         @map("total_amount") @db.Decimal(10, 2)
+  specialInstructions String?         @map("special_instructions") @db.Text
+  estimatedReadyAt    DateTime?       @map("estimated_ready_at")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
-  user                User               @relation(fields: [userId], references: [id])
-  items               OrderItem[]
-  delivery            Delivery?
-  collectSlot         CollectSlot?
-  payments            Payment[]
+  user        User         @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+  delivery    Delivery?
+  collectSlot CollectSlot?
+  payments    Payment[]
 
   @@map("orders")
 }
 
 model OrderItem {
-  id              String   @id @default(uuid()) @db.Uuid
-  orderId         String   @map("order_id") @db.Uuid
-  productId       String   @map("product_id") @db.Uuid
-  productName     String   @map("product_name") @db.VarChar(200)
-  unitPrice       Decimal  @map("unit_price") @db.Decimal(10, 2)
+  id              String  @id @default(uuid()) @db.Uuid
+  orderId         String  @map("order_id") @db.Uuid
+  productId       String  @map("product_id") @db.Uuid
+  productName     String  @map("product_name") @db.VarChar(200)
+  unitPrice       Decimal @map("unit_price") @db.Decimal(10, 2)
   quantity        Int
-  selectedOptions Json?    @map("selected_options") @db.JsonB
-  itemTotal       Decimal  @map("item_total") @db.Decimal(10, 2)
+  selectedOptions Json?   @map("selected_options") @db.JsonB
+  itemTotal       Decimal @map("item_total") @db.Decimal(10, 2)
 
-  order           Order    @relation(fields: [orderId], references: [id])
-  product         Product  @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
 }
@@ -185,9 +187,9 @@ model Delivery {
   dispatchedAt     DateTime? @map("dispatched_at")
   deliveredAt      DateTime? @map("delivered_at")
 
-  order            Order     @relation(fields: [orderId], references: [id])
-  address          Address   @relation(fields: [addressId], references: [id])
-  deliveryPerson   User?     @relation("DeliveryPerson", fields: [deliveryPersonId], references: [id])
+  order          Order   @relation(fields: [orderId], references: [id])
+  address        Address @relation(fields: [addressId], references: [id])
+  deliveryPerson User?   @relation("DeliveryPerson", fields: [deliveryPersonId], references: [id])
 
   @@map("deliveries")
 }
@@ -195,59 +197,79 @@ model Delivery {
 model CollectSlot {
   id          String    @id @default(uuid()) @db.Uuid
   orderId     String    @unique @map("order_id") @db.Uuid
-  slotTime    DateTime  @map("slot_time")
+  slotId      String?   @map("slot_id") @db.Uuid
+  slotTime    DateTime? @map("slot_time")
   collectedAt DateTime? @map("collected_at")
   notes       String?   @db.Text
 
-  order       Order     @relation(fields: [orderId], references: [id])
+  order Order       @relation(fields: [orderId], references: [id])
+  slot  PickupSlot? @relation(fields: [slotId], references: [id])
 
   @@map("collect_slots")
 }
 
-model Payment {
-  id               String        @id @default(uuid()) @db.Uuid
-  orderId          String        @map("order_id") @db.Uuid
-  paymentMethod    PaymentMethod @map("payment_method")
-  bankAccountRef   String?       @map("bank_account_ref") @db.VarChar(100)
-  amount           Decimal       @db.Decimal(10, 2)
-  currency         String        @default("MMK") @db.VarChar(3)
-  slipImageUrl     String        @map("slip_image_url") @db.Text
-  slipUploadedAt   DateTime      @map("slip_uploaded_at")
-  status           PaymentStatus
-  reviewedBy       String?       @map("reviewed_by") @db.Uuid
-  reviewedAt       DateTime?     @map("reviewed_at")
-  rejectionReason  String?       @map("rejection_reason") @db.Text
-  transactionRef   String?       @map("transaction_ref") @db.VarChar(100)
+model PickupSlot {
+  id             String   @id @default(uuid()) @db.Uuid
+  storeSettingId String   @map("store_setting_id") @db.Uuid
+  slotTime       DateTime @map("slot_time")
+  maxOrders      Int      @default(10) @map("max_orders")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  order            Order         @relation(fields: [orderId], references: [id])
-  reviewer         User?         @relation("PaymentReviewer", fields: [reviewedBy], references: [id])
+  storeSetting StoreSetting  @relation(fields: [storeSettingId], references: [id])
+  collectSlots CollectSlot[]
+
+  @@map("pickup_slots")
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  orderId         String        @map("order_id") @db.Uuid
+  paymentMethod   PaymentMethod @map("payment_method")
+  bankAccountRef  String?       @map("bank_account_ref") @db.VarChar(100)
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("MMK") @db.VarChar(3)
+  slipImageUrl    String        @map("slip_image_url") @db.Text
+  slipUploadedAt  DateTime      @map("slip_uploaded_at")
+  status          PaymentStatus
+  reviewedBy      String?       @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?     @map("reviewed_at")
+  rejectionReason String?       @map("rejection_reason") @db.Text
+  transactionRef  String?       @map("transaction_ref") @db.VarChar(100)
+
+  order    Order @relation(fields: [orderId], references: [id])
+  reviewer User? @relation("PaymentReviewer", fields: [reviewedBy], references: [id])
 
   @@map("payments")
 }
 
 model StorePaymentAccount {
-  id               String        @id @default(uuid()) @db.Uuid
-  paymentMethod    PaymentMethod @map("payment_method")
-  accountName      String        @map("account_name") @db.VarChar(100)
-  accountNumber    String        @map("account_number") @db.VarChar(50)
-  bankName         String?       @map("bank_name") @db.VarChar(100)
-  qrCodeImageUrl   String?       @map("qr_code_image_url") @db.Text
-  isActive         Boolean       @default(true) @map("is_active")
-  sortOrder        Int           @default(0) @map("sort_order")
+  id             String        @id @default(uuid()) @db.Uuid
+  paymentMethod  PaymentMethod @map("payment_method")
+  accountName    String        @map("account_name") @db.VarChar(100)
+  accountNumber  String        @map("account_number") @db.VarChar(50)
+  bankName       String?       @map("bank_name") @db.VarChar(100)
+  qrCodeImageUrl String?       @map("qr_code_image_url") @db.Text
+  isActive       Boolean       @default(true) @map("is_active")
+  sortOrder      Int           @default(0) @map("sort_order")
 
   @@map("store_payment_accounts")
 }
 
 model StoreSetting {
-  id                 String  @id @default(uuid()) @db.Uuid
-  storeName          String  @map("store_name") @db.VarChar(100)
-  storeLatitude      Decimal @map("store_latitude") @db.Decimal(10, 8)
-  storeLongitude     Decimal @map("store_longitude") @db.Decimal(11, 8)
-  deliveryRadiusKm   Decimal @map("delivery_radius_km") @db.Decimal(5, 2)
-  deliveryFeePerKm   Decimal @map("delivery_fee_per_km") @db.Decimal(6, 2)
-  minDeliveryFee     Decimal @map("min_delivery_fee") @db.Decimal(6, 2)
-  isAcceptingOrders  Boolean @default(true) @map("is_accepting_orders")
-  openingHours       Json    @map("opening_hours") @db.JsonB
+  id                String  @id @default(uuid()) @db.Uuid
+  storeName         String  @map("store_name") @db.VarChar(100)
+  storeLatitude     Decimal @map("store_latitude") @db.Decimal(10, 8)
+  storeLongitude    Decimal @map("store_longitude") @db.Decimal(11, 8)
+  deliveryRadiusKm  Decimal @map("delivery_radius_km") @db.Decimal(5, 2)
+  deliveryFeePerKm  Decimal @map("delivery_fee_per_km") @db.Decimal(10, 2)
+  minDeliveryFee    Decimal @map("min_delivery_fee") @db.Decimal(10, 2)
+  isAcceptingOrders Boolean @default(true) @map("is_accepting_orders")
+  openingHours      Json    @map("opening_hours") @db.JsonB
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  slots PickupSlot[]
 
   @@map("store_settings")
 }

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Status Update</title>
+</head>
+<body>
+    <h1>Update for {{name}}</h1>
+    <p>Good news! There is an update for order <strong>{{orderNumber}}</strong>.</p>
+    <p><strong>Current Status:</strong> {{status}}</p>
+    
+    {{#if reason}}
+    <p><strong>Reason:</strong> {{reason}}</p>
+    <p>Please review and re-upload your payment slip in the app.</p>
+    {{/if}}
+
+    <br>
+    <p>View your order details in the app for more information.</p>
+    <br>
+    <p>Best regards,<br>The Ezy-Buy Team</p>
+</body>
+</html>
