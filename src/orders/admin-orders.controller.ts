@@ -17,6 +17,11 @@ export class AdminOrdersController {
     return this.ordersService.findAllAdmin();
   }
 
+  @Get('lookup/:orderNumber')
+  async lookupByNumber(@Param('orderNumber') orderNumber: string) {
+    return this.ordersService.findByOrderNumber(orderNumber);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.ordersService.findOneAdmin(id);

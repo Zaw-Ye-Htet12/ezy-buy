@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as QRCode from 'qrcode';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Order, OrderStatus, FulfillmentType, Role } from '@prisma/client';
@@ -11,6 +12,7 @@ import { StoreService } from '../store/store.service';
 import { AddressesService } from '../users/addresses.service';
 import { getDistanceFromLatLonInKm } from '../common/utils/geo.util';
 import { MailService } from '../mail/mail.service';
+import { isStoreOpen } from '../common/utils/time.util';
 
 @Injectable()
 export class OrdersService {
@@ -26,6 +28,10 @@ export class OrdersService {
 
     if (!storeSettings.isAcceptingOrders) {
       throw new ForbiddenException('Store is currently not accepting new orders');
+    }
+
+    if (!isStoreOpen(storeSettings.openingHours)) {
+      throw new ForbiddenException('Store is currently closed');
     }
 
     // 1. Calculate Totals and Validate Products
@@ -388,6 +394,47 @@ export class OrdersService {
         data: { status: OrderStatus.out_for_delivery },
       });
     });
+  }
+
+  async generateOrderQrCode(userId: string, orderId: string): Promise<string> {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Generate QR code for the order number
+    // In a real app, this might be a URL to the order detail page
+    try {
+      const qrDataUrl = await QRCode.toDataURL(order.orderNumber);
+      return qrDataUrl;
+    } catch (err) {
+      throw new BadRequestException('Failed to generate QR code');
+    }
+  }
+
+  async findByOrderNumber(orderNumber: string): Promise<any> {
+    const order = await this.prisma.order.findUnique({
+      where: { orderNumber },
+      include: {
+        items: true,
+        user: { select: { fullName: true, email: true, phone: true } },
+        delivery: {
+          include: {
+            address: true,
+            deliveryPerson: { select: { fullName: true, phone: true } },
+          },
+        },
+        collectSlot: { include: { slot: true } },
+        payments: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with number ${orderNumber} not found`);
+    }
+
+    return order;
   }
 }
 

@@ -25,4 +25,11 @@ export class OrdersController {
     const userId = req.user.sub;
     return this.ordersService.findOne(userId, id);
   }
+
+  @Get(':id/qr')
+  async getQrCode(@Req() req: any, @Param('id') id: string) {
+    const userId = req.user.sub;
+    const qrDataUrl = await this.ordersService.generateOrderQrCode(userId, id);
+    return { qrDataUrl };
+  }
 }
