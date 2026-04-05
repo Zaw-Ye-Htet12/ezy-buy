@@ -1,10 +1,11 @@
-import { Controller, Get, Body, Patch, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, UseGuards, Query } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { OrderStatus, Role } from '@prisma/client';
 import { AtGuard } from '../auth/guards/at.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AssignRiderDto } from './dto/assign-rider.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('admin/orders')
 @UseGuards(AtGuard, RolesGuard)
@@ -13,8 +14,8 @@ export class AdminOrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  async findAll() {
-    return this.ordersService.findAllAdmin();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.ordersService.findAllAdmin(paginationDto);
   }
 
   @Get('lookup/:orderNumber')

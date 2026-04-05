@@ -12,6 +12,8 @@ import { StoreService } from '../store/store.service';
 import { AddressesService } from '../users/addresses.service';
 import { getDistanceFromLatLonInKm } from '../common/utils/geo.util';
 import { MailService } from '../mail/mail.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResult } from '../common/types/paginated-result';
 import { isStoreOpen } from '../common/utils/time.util';
 
 @Injectable()
@@ -211,12 +213,24 @@ export class OrdersService {
     return order;
   }
 
-  async findAll(userId: string): Promise<Order[]> {
-    return this.prisma.order.findMany({
-      where: { userId },
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(userId: string, paginationDto: PaginationDto): Promise<PaginatedResult<Order>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const where = { userId };
+
+    const [total, data] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: limit,
+        include: { items: true },
+        orderBy: { createdAt: 'desc' },
+      })
+    ]);
+
+    return { data, meta: { total, page, limit, lastPage: Math.ceil(total / limit) } };
   }
 
   async findOne(userId: string, id: string): Promise<any> {
@@ -234,14 +248,24 @@ export class OrdersService {
   }
 
   // Admin APIs
-  async findAllAdmin(): Promise<Order[]> {
-    return this.prisma.order.findMany({
-      include: {
-        items: true,
-        user: { select: { fullName: true, email: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllAdmin(paginationDto: PaginationDto): Promise<PaginatedResult<Order>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [total, data] = await Promise.all([
+      this.prisma.order.count(),
+      this.prisma.order.findMany({
+        skip,
+        take: limit,
+        include: {
+          items: true,
+          user: { select: { fullName: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    ]);
+
+    return { data, meta: { total, page, limit, lastPage: Math.ceil(total / limit) } };
   }
 
   async updateStatus(id: string, status: OrderStatus): Promise<Order> {

@@ -17,6 +17,7 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { AtGuard } from '../auth/guards/at.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,10 +34,11 @@ export class ProductsController {
   // Public Endpoints
   @Get('products')
   async findAllActive(
+    @Query() paginationDto: PaginationDto,
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
   ) {
-    return this.productsService.findAllActive(categoryId, search);
+    return this.productsService.findAllActive(paginationDto, categoryId, search);
   }
 
   @Get('products/:id')
@@ -48,8 +50,8 @@ export class ProductsController {
   @UseGuards(AtGuard, RolesGuard)
   @Roles(Role.admin)
   @Get('admin/products')
-  async findAllAdmin() {
-    return this.productsService.findAllAdmin();
+  async findAllAdmin(@Query() paginationDto: PaginationDto) {
+    return this.productsService.findAllAdmin(paginationDto);
   }
 
   @UseGuards(AtGuard, RolesGuard)

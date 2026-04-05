@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from '@prisma/client';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResult } from '../common/types/paginated-result';
 
 @Injectable()
 export class ProductsService {
@@ -43,39 +45,75 @@ export class ProductsService {
     });
   }
 
-  async findAllActive(categoryId?: string, search?: string): Promise<Product[]> {
-    return this.prisma.product.findMany({
-      where: {
-        isAvailable: true,
-        isDeleted: false,
-        categoryId: categoryId || undefined,
-        name: search ? { contains: search, mode: 'insensitive' } : undefined,
-      },
-      include: {
-        category: true,
-        options: {
-          include: {
-            values: true,
+  async findAllActive(paginationDto: PaginationDto, categoryId?: string, search?: string): Promise<PaginatedResult<Product>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      isAvailable: true,
+      isDeleted: false,
+      categoryId: categoryId || undefined,
+      name: search ? { contains: search, mode: 'insensitive' as any } : undefined,
+    };
+
+    const [total, data] = await Promise.all([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          category: true,
+          options: {
+            include: { values: true },
           },
         },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
-  async findAllAdmin(): Promise<Product[]> {
-    return this.prisma.product.findMany({
-      where: { isDeleted: false },
-      include: {
-        category: true,
-        options: {
-          include: {
-            values: true,
+  async findAllAdmin(paginationDto: PaginationDto): Promise<PaginatedResult<Product>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const where = { isDeleted: false };
+
+    const [total, data] = await Promise.all([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          category: true,
+          options: {
+            include: { values: true },
           },
         },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
   async findOne(id: string): Promise<Product> {

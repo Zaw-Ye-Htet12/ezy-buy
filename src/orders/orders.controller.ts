@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req, Query } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { AtGuard } from '../auth/guards/at.guard';
 
 @Controller('orders')
@@ -15,9 +16,9 @@ export class OrdersController {
   }
 
   @Get()
-  async findAll(@Req() req: any) {
+  async findAll(@Req() req: any, @Query() paginationDto: PaginationDto) {
     const userId = req.user.sub;
-    return this.ordersService.findAll(userId);
+    return this.ordersService.findAll(userId, paginationDto);
   }
 
   @Get(':id')

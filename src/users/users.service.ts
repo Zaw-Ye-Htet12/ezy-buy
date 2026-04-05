@@ -2,10 +2,12 @@ import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, User, Role } from '@prisma/client';
 import { z } from 'zod';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResult } from '../common/types/paginated-result';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private readonly emailSchema = z.string().email('Invalid email format');
   private readonly uuidSchema = z.string().uuid('Invalid UUID format');
@@ -57,10 +59,20 @@ export class UsersService {
     });
   }
 
-  async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(paginationDto: PaginationDto): Promise<PaginatedResult<User>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [total, data] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      })
+    ]);
+
+    return { data, meta: { total, page, limit, lastPage: Math.ceil(total / limit) } };
   }
 
   async deleteUser(id: string): Promise<User> {

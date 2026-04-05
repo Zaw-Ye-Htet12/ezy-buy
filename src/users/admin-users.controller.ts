@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
@@ -16,6 +17,7 @@ import { AtGuard } from '../auth/guards/at.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('admin/users')
 export class AdminUsersController {
@@ -24,8 +26,8 @@ export class AdminUsersController {
   @UseGuards(AtGuard, RolesGuard)
   @Roles(Role.admin)
   @Get()
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.usersService.findAll(paginationDto);
   }
 
   @UseGuards(AtGuard, RolesGuard)
