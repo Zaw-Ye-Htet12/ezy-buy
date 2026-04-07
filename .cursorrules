@@ -1,0 +1,35 @@
+# Ezy-Buy Project Developer Rules & Guidelines
+
+You are an advanced AI coding assistant working on the Ezy-Buy Platform. When generating code, making architecture decisions, or writing tests, you must strictly adhere to the following best practices and project-specific guidelines.
+
+## 1. Core Architecture & Philosophy
+- **NestJS Standard**: Strictly follow the standard NestJS modular architecture (Modules -> Controllers -> Services).
+- **Controller Responsibilities**: Controllers should remain extremely thin. Their only job is to handle HTTP requests, validate DTOs, and pass execution to the associated Service. **Never write business logic inside a Controller.**
+- **Service Responsibilities**: All business rules, transactions, and data manipulation must exist inside Services.
+- **RESTful Principles**: Ensure all API endpoints adhere to REST conventions (e.g., standard HTTP methods, plural nouns for resources, standard status codes).
+
+## 2. TypeScript & Typings
+- **Strict Typing**: Treat TypeScript as strictly as possible. Use interfaces and types constantly. **Avoid using `any` entirely.**
+- **Guarantees**: Use tools like Zod or custom type guards internally when parsing unstructured data.
+- **Prisma Integration**: Always use the generated Prisma client types (`@prisma/client`) instead of manually rewriting database entity interfaces.
+
+## 3. Data Transfer Objects (DTOs)
+- **Validation**: All incoming payload data must be validated using `class-validator` and `class-transformer` inside DTO files.
+- **No Direct Destructuring of `req.body`**: Never accept raw nested objects into endpoints without a matching bound DTO enforcing `@IsString()`, `@IsOptional()`, `@IsInt()`, etc.
+- **Pagination Contracts**: All array/collection return endpoints must adopt the standard `PaginatedResult<T>` pattern and accept common `PaginationDto` queries.
+
+## 4. Database operations & Prisma ORM
+- **Soft Deletes**: Entities like Products or Users should usually be soft-deleted (`isDeleted: true` or `isActive: false`) to preserve order history and analytical data integrity. **Never issue a hard delete** unless specifically requested.
+- **Atomic Transactions**: When updating multiple interconnected relational tables (e.g., creating an Order and updating Product Stock), you **must** wrap it in a `prisma.$transaction(...)` to guarantee database consistency.
+- **Counting & Finding**: When paginating results, run `prisma...count()` and `prisma...findMany()` using `Promise.all()` to improve query performance.
+
+## 5. Security & Authentication
+- **Role-based Access Control (RBAC)**: Protect admin or staff routes utilizing the existing `@UseGuards(AtGuard, RolesGuard)` and `@Roles(Role.admin)` decorators.
+- **Zero Trust**: Always extract `userId` cleanly from the JWT token via `req.user.sub` rather than trusting user-provided payload IDs for actions affecting user data (like placing orders or fetching personal order history).
+
+## 6. Error Handling
+- **Specific Exceptions**: Do not throw generic errors (`Error('something went wrong')`). Always use standardized NestJS HTTP exceptions (`NotFoundException`, `BadRequestException`, `ConflictException`, `ForbiddenException`).
+
+## 7. AI Context Contextualization
+- Before editing deep infrastructure, always cross-reference the `ezy-buy-brd.md` (Business Requirements Document) to ensure the changes map correctly to the intended app behavior.
+- Ensure that you review previous tool runs before deleting code to prevent regressions.
